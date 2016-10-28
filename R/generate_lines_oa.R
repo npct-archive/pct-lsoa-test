@@ -3,7 +3,7 @@ source("../pct-load/set-up.R")
 
 # OA centroids
 cents = readOGR(dsn = "D:/Users/earmmor/OneDrive - University of Leeds/Cycling Big Data/Data/England_oa_2011_centroids", layer = "england_oa_2011_centroids")
-cents <- spTransform(cents, CRS("+proj=longlat +datum=WGS84"))
+cents <- spTransform(cents, CRS("+init=epsg:4326"))
 #WZ centroids
 centsWZ <- readOGR(dsn = "D:/Users/earmmor/OneDrive - University of Leeds/Cycling Big Data/Data/England_wz_2011_centroids", layer = "england_wz_2011_centroids")
 centsWZ <- spTransform(centsWZ, CRS(proj4string(cents))) # transform CRS
@@ -57,7 +57,8 @@ flow_twoway = flow
 
 nrow(flow) # down to 0.9m, removed majority of lines
 #cents <- cents[,c(2,1)] # switch column order for the od2line function to work
-lines = od2line2(flow = flow, zones = cents)
+cents_both <- rbind(cents, centsWZ)
+lines = od2line2(flow = flow, zones = cents_both)
 
 plot(lines)
 
@@ -67,8 +68,8 @@ lines = SpatialLinesDataFrame(sl = lines, data = flow)
 names(lines)
 proj4string(lines) = CRS("+init=epsg:4326") # set crs
 
-sum(lines$`AllMethods_AllSexes_Age16Plus`)
-summary(lines$`AllMethods_AllSexes_Age16Plus`)
+#sum(lines$`AllMethods_AllSexes_Age16Plus`)
+#summary(lines$`AllMethods_AllSexes_Age16Plus`)
 
 # to be removed when this is in stplanr
 od_dist <- function(flow, zones){
@@ -79,15 +80,15 @@ od_dist <- function(flow, zones){
   geosphere::distHaversine(p1 = cents_o, p2 = cents_d)
 }
 
-lines$dist = od_dist(flow = lines@data, zones = cents) / 1000
+lines$dist = od_dist(flow = lines@data, zones = cents_both) / 1000
 
 summary(lines$dist)
 
-lines@data <- dplyr::rename(lines@data,
-                        msoa1 = Area_of_usual_residence,
-                        msoa2 = Area_of_Workplace,
-                        all = `AllMethods_AllSexes_Age16Plus`,
-                        bicycle = Bicycle_AllSexes_Age16Plus#,
+#lines@data <- dplyr::rename(lines@data,
+#                        msoa1 = Area_of_usual_residence,
+#                        msoa2 = Area_of_Workplace,
+#                        all = `AllMethods_AllSexes_Age16Plus`,
+#                        bicycle = Bicycle_AllSexes_Age16Plus#,
                         #train = Train,
                         #bus = `Bus,_minibus_or_coach`,
                         #car_driver = `Driving_a_car_or_van`,
@@ -97,7 +98,7 @@ lines@data <- dplyr::rename(lines@data,
                         #motorbike = `Motorcycle,_scooter_or_moped`,
                         #light_rail = `Underground,_metro,_light_rail,_tram`,
                         #other = Other_method_of_travel_to_work
-)
+#)
 
 lines$WorkAtHome_AllSexes_Age16Plus <- NULL
 
@@ -105,8 +106,8 @@ names(lines)
 
 # generate the fastest routes
 rf = line2route(l = lines, route_fun = route_cyclestreet, plan = "fastest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rf,file ="../pct-lsoa-test/data/rf_LSOA_Cam.Rds")
+saveRDS(rf,file ="../pct-lsoa-test/data/rf_OA_Cam.Rds")
 
 rq = line2route(l = lines, route_fun = route_cyclestreet, plan = "quietest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rq,file ="../pct-lsoa-test/data/rq_LSOA_Cam.Rds")
+saveRDS(rq,file ="../pct-lsoa-test/data/rq_OA_Cam.Rds")
 

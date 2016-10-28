@@ -5,16 +5,17 @@ cents = geojsonio::geojson_read("../pct-lsoa-test/data/lsoa_centroids.geojson", 
 unzip("../pct-lsoa-test/data/WM12EW[CT0489]_lsoa.zip")
 flow_cens = readr::read_csv("WM12EW[CT0489]_lsoa.csv")
 file.remove("WM12EW[CT0489]_lsoa.csv")
-nrow(flow_cens) # 2.4 m
+nrow(flow_cens) # 7.74 m
 
 # subset the centroids for testing (comment to generate national data)
 
 cents = cents[grep(pattern = "Camb", x = cents$name),]
-plot(cents)
-nrow(cents)
+#plot(cents)
+nrow(cents) #32844
 o <- flow_cens$`Area of usual residence` %in% cents$code
 d <- flow_cens$`Area of Workplace` %in% cents$code
 flow <- flow_cens[o & d, ] # subset OD pairs with o and d in study area
+nrow(flow) #7.28 m
 
 omatch = match(flow$`Area of usual residence`, cents$code)
 dmatch = match(flow$`Area of Workplace`, cents$code)
@@ -30,7 +31,7 @@ hist(geodist, breaks = 0:800)
 flow$dist = geodist
 flow = flow[!is.na(flow$dist),] # there are 36k destinations with no matching cents - remove
 #flow = flow[flow$dist >= 20,] # subset based on euclidean distance
-flow = flow[flow$dist < 30,]
+#flow = flow[flow$dist < 5,]
 names(flow) = gsub(pattern = " ", "_", names(flow))
 flow_twoway = flow
 flow = onewayid(flow, attrib = 5:256, id1 = "Area_of_usual_residence", id2 = "Area_of_Workplace")
@@ -67,8 +68,8 @@ lines$dist = od_dist(flow = lines@data, zones = cents) / 1000
 summary(lines$dist)
 
 lines@data <- dplyr::rename(lines@data,
-                        msoa1 = Area_of_usual_residence,
-                        msoa2 = Area_of_Workplace,
+                        lsoa1 = Area_of_usual_residence,
+                        lsoa2 = Area_of_Workplace,
                         all = `AllMethods_AllSexes_Age16Plus`,
                         bicycle = Bicycle_AllSexes_Age16Plus#,
                         #train = Train,
@@ -85,11 +86,13 @@ lines@data <- dplyr::rename(lines@data,
 lines$WorkAtHome_AllSexes_Age16Plus <- NULL
 
 names(lines)
+# Save the Lines
+saveRDS(lines,file = "../pct-lsoa-test/data/Lines_Cam.Rds")
 
 # generate the fastest routes
 rf = line2route(l = lines, route_fun = route_cyclestreet, plan = "fastest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rf,file ="../pct-lsoa-test/data/rf_LSOA_Cam.Rds")
+saveRDS(rf,file ="../pct-lsoa-test/data/rf_LSOA_Cam2.Rds")
 
 rq = line2route(l = lines, route_fun = route_cyclestreet, plan = "quietest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rq,file ="../pct-lsoa-test/data/rq_LSOA_Cam.Rds")
+saveRDS(rq,file ="../pct-lsoa-test/data/rq_LSOA_Cam2.Rds")
 
