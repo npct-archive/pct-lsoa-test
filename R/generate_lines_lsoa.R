@@ -89,10 +89,25 @@ names(lines)
 # Save the Lines
 saveRDS(lines,file = "../pct-lsoa-test/data/Lines_Cam.Rds")
 
+msoa_l <- readRDS("../pct-data/cambridgeshire/l.Rds")
+
+nos_features <- length(rf)
+
+fake_data <- function(sdf){
+  for (name in names(msoa_l@data)){
+    if(grepl("geo_label|msoa", name)) next
+    sdf@data[[name]] <- rnorm(nos_features, mean=100, sd=15)
+  }
+  sdf@data$geo_label1 <- c(cents$name, cents$name, cents$name, cents$name,cents$name ,cents$name, cents$name[1:57])
+  sdf@data$geo_label2 <- c(cents$name, cents$name, cents$name, cents$name,cents$name ,cents$name, cents$name[1:57])
+  sdf@data$msoa1 <- c(cents$code, cents$code, cents$code, cents$code,cents$code ,cents$code, cents$code[1:57])
+  sdf@data$msoa2 <- c(cents$code, cents$code, cents$code, cents$code,cents$code ,cents$code, cents$code[1:57])
+  sdf
+}
+
 # generate the fastest routes
 rf = line2route(l = lines, route_fun = route_cyclestreet, plan = "fastest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rf,file ="../pct-lsoa-test/data/rf_LSOA_Cam2.Rds")
+saveRDS(fake_data(rf),file ="../pct-lsoa-test/data/rf_LSOA_Cam2.Rds")
 
 rq = line2route(l = lines, route_fun = route_cyclestreet, plan = "quietest", base_url = "http://pct.cyclestreets.net/api/")
-saveRDS(rq,file ="../pct-lsoa-test/data/rq_LSOA_Cam2.Rds")
-
+saveRDS(fake_data(rq),file ="../pct-lsoa-test/data/rq_LSOA_Cam2.Rds")
