@@ -201,7 +201,7 @@ shinyServer(function(input, output, session){
   # Returns the map bounding box
   map_bb <- reactive({
     if (is.null(input$map_bounds)){ return (NULL)}
-    if(input$map_bounds$north > 88){
+    if(input$map_bounds$east > 20){
       leafletProxy("map") %>% setView(0.12, 52.205, 14)
       return(NULL)
     }
