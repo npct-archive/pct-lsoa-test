@@ -1,0 +1,34 @@
+---
+title: "Creating raster heatmap method"
+author: "Robin Lovelace"
+date: "2 November 2016"
+output: html_document
+---
+
+```{r}
+library(sp)
+library(raster)
+# Generate raster
+
+rf = readRDS("data/rf_LSAO_Cam_simp.Rds")
+p = spsample(x = rf[1:10,], n = 100, type = "regular")
+plot(p)
+```
+
+```{r}
+p = spTransform(p, CRSobj = CRS("+init=epsg:27700"))
+r = raster(p, resolution = 200)
+nrow(r)
+plot(r)
+rrnet = rasterize(x = p, y = r, fun = "count")
+rrnet_wgs = projectRaster(rrnet, crs = crs(rf))
+plot(rrnet_wgs)
+saveRDS(rrnet_wgs, "data/rrnet.Rds")
+```
+
+```{r, eval=FALSE}
+mapview::mapview(rrnet_wgs) +
+  mapview::mapview(rf[1:10,])
+```
+
+
