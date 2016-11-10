@@ -6,10 +6,14 @@
 
 #libs
 library(rgeos)
+library(raster)
 library(sp)
 library(rgdal)
 library(gdalUtils)
 library(stplanr)
+
+#GDAL Setup
+gdal_setInstallation(search_path = "D:/Program Files/QGIS 2.18/bin", verbose = T)
 
 
 #read in an make files
@@ -83,15 +87,22 @@ plot(lines_check)
 # rasterise each layer 
 #join in the cycling data
 lines_master@data$bike <- NULL
-lines_master@data[,"bike"] <- as.numeric()
+lines_master@data[,"bike"] <- as.integer()
 lines_master@data$bike <- lines_data@data$bicycle
 
 
 for(k in 1: max(groups[,2])){
   checklist = groups[which(groups[,2] == k),]
   lines2raster = lines_master[which(lines_master$id %in% checklist[,1]),]
-  writeOGR(lines2raster, dsn = "../pct-lsoa-test/data", paste0("line",k,".shp"), driver = "ESRI Shapefile")
+  lines2raster@data = lines2raster@data[,-(1:5), drop=FALSE]
+  lines2raster <- spTransform(lines2raster,CRS("+init=epsg:4267"))
+  Xres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,2],lines2raster@bbox[2,1]))/20)
+  Yres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,1],lines2raster@bbox[2,2]))/20)
+  writeOGR(lines2raster, dsn = "../pct-lsoa-test/data", paste0("line",k), driver = "ESRI Shapefile")
   src_dataset <- system.file(paste0("../pct-lsoa-test/data/line",k,".shp"), package="gdalUtils")
-  gdal_rasterize(src_dataset,dst_filename = paste0("../pct-lsoa-test/data/raster",k,".tiff"), a = "bike", tr = c(20,20), verbose = F)
+  dst_filename <- paste("../pct-lsoa-test/data/rastest",".tif",sep="")
+  #dst_filename <- paste(tempfile(),".tif",sep="")
+  #raster1 <- gdal_rasterize(src_dataset,dst_filename, a = "bike", tr = c(Xres,Yres), verbose = F)
+  raster1 <- gdal_rasterize(src_dataset,dst_filename, a = "bike", verbose = F)
 }
   
