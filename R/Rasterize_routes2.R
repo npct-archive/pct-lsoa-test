@@ -18,19 +18,25 @@ library(dplyr)
 library(utils)
 
 #Inputs
-lines_master = readRDS("../pct-bigdata/rf_nat.Rds")
+lines_master = readRDS("../pct-bigdata/msoa/rf_nat.Rds")
 lines_master@data = subset(lines_master@data, select=c("id"))
-lines_data = readRDS("../pct-bigdata/l_nat.Rds")
+lines_master <- lines_master[!duplicated(lines_master$id),] #remove when rf_nat fixed
+lines_data = readRDS("../pct-bigdata/msoa/l_nat.Rds")
 lines_data@data = subset(lines_data@data, select=c("id","bicycle"))
+lines_data <- lines_data[!duplicated(lines_data$id),] #remove when rf_lines fixed
+
 size_limit = 6000
 
 #join in the cycling data
 lines_master@data = merge(lines_master@data,lines_data@data, by = "id")
+#merge <- right_join(lines_master@data, lines_data@data, by = "id")
 remove(lines_data)
+lines_master <- lines_master[1:100000,] #for low ram computers
 
 #Simplify IDs
 id2id <- data.frame(id_old=lines_master$id,id_new=1:nrow(lines_master))
 lines_master$id <- id2id$id_new
+remove(id2id)
 
 #Set up the king raster
 Xres <- as.integer(geosphere::distHaversine(c(lines_master@bbox[1,1],lines_master@bbox[2,1]), c(lines_master@bbox[1,2],lines_master@bbox[2,1]))/20)
@@ -47,7 +53,8 @@ if(nrow(lines_master) < size_limit){
 #Loop for when too many lines
 for(v in 1:goes){
 print(paste0("Doing loop ",as.character(v)," of ",as.character(goes)," at ",Sys.time()))
-lines = lines_master[(1 + (v-1)*size_limit):(v*size_limit),]
+lines <- lines_master[seq.int(from = v, to = nrow(lines_master), goes),] # Subset evenly across the country
+#lines = lines_master[(1 + (v-1)*size_limit):(v*size_limit),]
 matrix_master= gIntersects(lines, byid = T) 
 colnames(matrix_master) <- lines$id
 rownames(matrix_master) <- lines$id
@@ -139,3 +146,4 @@ remove(matrix_master)
 remove(lines)
 remove(rowsum)
 }
+
