@@ -16,6 +16,7 @@ library(sp)
 library(rgdal)
 library(dplyr)
 library(utils)
+library(velox)
 
 #Inputs
 lines_master = readRDS("../pct-bigdata/msoa/rf_nat.Rds")
@@ -25,18 +26,18 @@ lines_data = readRDS("../pct-bigdata/msoa/l_nat.Rds")
 lines_data@data = subset(lines_data@data, select=c("id","bicycle"))
 lines_data <- lines_data[!duplicated(lines_data$id),] #remove when rf_lines fixed
 
-size_limit = 6000
+size_limit = 5000
 
 #join in the cycling data
 lines_master@data = merge(lines_master@data,lines_data@data, by = "id")
 #merge <- right_join(lines_master@data, lines_data@data, by = "id")
 remove(lines_data)
-lines_master <- lines_master[1:100000,] #for low ram computers
+lines_master <- lines_master[1:10000,] #for low ram computers
 
 #Simplify IDs
 id2id <- data.frame(id_old=lines_master$id,id_new=1:nrow(lines_master))
 lines_master$id <- id2id$id_new
-remove(id2id)
+#remove(id2id)
 
 #Set up the king raster
 Xres <- as.integer(geosphere::distHaversine(c(lines_master@bbox[1,1],lines_master@bbox[2,1]), c(lines_master@bbox[1,2],lines_master@bbox[2,1]))/20)
@@ -102,6 +103,10 @@ for(i in 1:nrow(lines)){ #loop thought every line
   }
 }
 close(pb)
+
+foo <- left_join(groups, id2id, by.x = "id", by.y = "id_old")
+
+break()
 
 #Set up the raster
 raster_master <- crop(raster_king,extent(lines))
