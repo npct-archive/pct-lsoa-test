@@ -8,11 +8,6 @@ library(stplanr)
 library(dplyr)
 library(maptools)
 
-lines_master = readRDS("../pct-bigdata/msoa/rf_nat.Rds")
-lines_master = lines_master[!is.na(lines_master@data$length),]
-#lines_master = lines_master[1:20000,]
-group_no = as.integer(1)
-
 grouplines_bearing <- function(lines_master, group_no, chunk_size){
   #Groups lines quickly by will not find a group for all lines
   #Check if too many lines to do at once
@@ -77,12 +72,12 @@ grouplines_grid <- function(lines_master, group_no, grid_size){
   points = SpatialLinesMidPoints(lines_master)
   
   ### define SpatialGrid object
-  bb <- bbox(points_ug)
+  bb <- bbox(points)
   cs <- c(grid_size, grid_size)
   cc <- bb[, 1] + (cs/2)  # cell offset
   cd <- ceiling(diff(t(bb))/cs)  # number of cells per direction
   grd <- GridTopology(cellcentre.offset=cc, cellsize=cs, cells.dim=cd)
-  sp_grd <- SpatialGridDataFrame(grd, data=data.frame(id=1:prod(cd)), proj4string=CRS(proj4string(points_ug)))
+  sp_grd <- SpatialGridDataFrame(grd, data=data.frame(id=1:prod(cd)), proj4string=CRS(proj4string(points)))
   
   #Assign Grid IDs to Lines
   groups_master$grid <- as.integer(NA)
