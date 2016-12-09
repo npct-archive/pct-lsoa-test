@@ -25,8 +25,9 @@ rownames(matrix_master) <- lines$id
 colnames(matrix_master) <- lines$id
 matrix_master = 1 * matrix_master# convert T/F to 1/0
 matrix = matrix_master # create duplicate for working on
-groups =  matrix(nrow = nrow(lines), ncol = 2) #create a table of IDs to store which group they should go in
-groups[,1] = lines$id
+#groups =  data.frame(nrow = nrow(lines), ncol = 2) 
+groups =  data.frame(id=as.character(lines$id),nrow=as.integer(0)) #create a table of IDs to store which group they should go in
+#groups[,1] = lines$id
 
 
 #Outer Loop
@@ -90,19 +91,24 @@ lines_master@data$bike <- NULL
 lines_master@data[,"bike"] <- as.integer()
 lines_master@data$bike <- lines_data@data$bicycle
 
+#Set up the raster
+Xres <- as.integer(geosphere::distHaversine(c(lines_master@bbox[1,1],lines_master@bbox[2,1]), c(lines_master@bbox[1,2],lines_master@bbox[2,1]))/20)
+Yres <- as.integer(geosphere::distHaversine(c(lines_master@bbox[1,1],lines_master@bbox[2,1]), c(lines_master@bbox[1,1],lines_master@bbox[2,2]))/20)
+raster_master <- raster(ncols=Xres, nrows=Yres, ext = extent(lines_master), crs= "+init=epsg:4267")
+raster_stack<- raster_master
 
 for(k in 1: max(groups[,2])){
   checklist = groups[which(groups[,2] == k),]
   lines2raster = lines_master[which(lines_master$id %in% checklist[,1]),]
   lines2raster@data = lines2raster@data[,-(1:5), drop=FALSE]
   lines2raster <- spTransform(lines2raster,CRS("+init=epsg:4267"))
-  Xres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,2],lines2raster@bbox[2,1]))/20)
-  Yres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,1],lines2raster@bbox[2,2]))/20)
-  writeOGR(lines2raster, dsn = "../pct-lsoa-test/data", paste0("line",k), driver = "ESRI Shapefile")
-  src_dataset <- system.file(paste0("../pct-lsoa-test/data/line",k,".shp"), package="gdalUtils")
-  dst_filename <- paste("../pct-lsoa-test/data/rastest",".tif",sep="")
-  #dst_filename <- paste(tempfile(),".tif",sep="")
-  #raster1 <- gdal_rasterize(src_dataset,dst_filename, a = "bike", tr = c(Xres,Yres), verbose = F)
-  raster1 <- gdal_rasterize(src_dataset,dst_filename, a = "bike", verbose = F)
+  #Xres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,2],lines2raster@bbox[2,1]))/20)
+  #Yres <- as.integer(geosphere::distHaversine(c(lines2raster@bbox[1,1],lines2raster@bbox[2,1]), c(lines2raster@bbox[1,1],lines2raster@bbox[2,2]))/20)
+  #writeOGR(lines2raster, dsn = "../pct-lsoa-test/data/temp", paste0("line",k), driver = "ESRI Shapefile")
+  #src<- paste0("../pct-lsoa-test/data/temp/line",k,".shp")
+  #dst<- paste0("../pct-lsoa-test/data/temp/line",k,".tiff")
+  raster_sub <- rasterize(lines2raster,raster_master , field ="bike")
+  raster_stack <- sum(raster_stack,raster_sub)
+  #raster1 <- gdal_rasterize(src,dst, a = "bike", ts =c(Xres,Yres), verbose = F)
 }
   
